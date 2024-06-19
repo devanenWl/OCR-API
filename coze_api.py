@@ -26,8 +26,15 @@ def image_processing(cookie, image, headers):
         session_token = resp["data"]["auth"]["session_token"]
         access_key = resp["data"]["auth"]["access_key_id"]
         secret_key = resp["data"]["auth"]["secret_access_key"]
+        upload_host = resp["data"]["upload_host"]
+        service_id = resp["data"]["service_id"]
     except:
         return 'Error'
+
+    if upload_host == "image-upload-us.ciciai.com":
+        region = "us-east-1"
+    elif upload_host == "image-upload-sg.ciciai.com":
+        region = "ap-singapore-1"
 
     # Initiate image upload
     amzdate = generate_amz_time()
@@ -36,16 +43,15 @@ def image_processing(cookie, image, headers):
         "x-amz-security-token": session_token
     }
     FileSize = str(len(image))
-    request_parameters = f'Action=ApplyImageUpload&FileExtension=.png&FileSize={FileSize}&ServiceId=b2l6bve69y&Version=2018-08-01'
+    request_parameters = f'Action=ApplyImageUpload&FileExtension=.png&FileSize={FileSize}&ServiceId={service_id}&Version=2018-08-01'
     signature = AWSsignature(access_key, secret_key, request_parameters, headers_amz_global)
 
     # Check if signature is correct
     datestamp = amzdate.split('T')[0]
-    url = f"https://image-upload-sg.ciciai.com/?Action=ApplyImageUpload&FileExtension=.png&FileSize={FileSize}&ServiceId=b2l6bve69y&Version=2018-08-01"
+    url = f"https://image-upload-sg.ciciai.com/?Action=ApplyImageUpload&FileExtension=.png&FileSize={FileSize}&ServiceId={service_id}&Version=2018-08-01"
     headers_amz = headers_amz_global
-    headers_amz["Authorization"] = f"AWS4-HMAC-SHA256 Credential={access_key}/{datestamp}/ap-singapore-1/imagex/aws4_request, SignedHeaders=x-amz-date;x-amz-security-token, Signature={signature}"
+    headers_amz["Authorization"] = f"AWS4-HMAC-SHA256 Credential={access_key}/{datestamp}/{region}/imagex/aws4_request, SignedHeaders=x-amz-date;x-amz-security-token, Signature={signature}"
     resp = requests.get(url, headers=headers_amz).json()
-
     # Upload image
     upload_url = 'https://' + resp["Result"]["UploadAddress"]["UploadHosts"][0] + '/upload/v1/' + resp["Result"]["UploadAddress"]["StoreInfos"][0]["StoreUri"]
 
@@ -72,12 +78,12 @@ def image_processing(cookie, image, headers):
     }
 
     # Commit image upload
-    request_parameters = f'Action=CommitImageUpload&ServiceId=b2l6bve69y&Version=2018-08-01' # Alphabetic order
+    request_parameters = f'Action=CommitImageUpload&ServiceId={service_id}&Version=2018-08-01' # Alphabetic order
     signature = AWSsignature(access_key, secret_key, request_parameters, headers_amz_global, method="POST", payload=json.dumps(data))
     headers_amz = headers_amz_global
-    headers_amz["Authorization"] = f"AWS4-HMAC-SHA256 Credential={access_key}/{datestamp}/ap-singapore-1/imagex/aws4_request, SignedHeaders=x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature={signature}"
+    headers_amz["Authorization"] = f"AWS4-HMAC-SHA256 Credential={access_key}/{datestamp}/{region}/imagex/aws4_request, SignedHeaders=x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature={signature}"
 
-    url_commit = "https://image-upload-sg.ciciai.com/?Action=CommitImageUpload&Version=2018-08-01&ServiceId=b2l6bve69y"
+    url_commit = f"https://image-upload-sg.ciciai.com/?Action=CommitImageUpload&Version=2018-08-01&ServiceId={service_id}"
     resp = requests.post(url_commit, headers=headers_amz, json=data).json()
     return resp
 
