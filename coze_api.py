@@ -32,7 +32,7 @@ def image_processing(cookie, image, headers):
         return 'Error'
 
     if upload_host == "image-upload-us.ciciai.com":
-        region = "us-east-1"
+        region = "ap-singapore-1"
     elif upload_host == "image-upload-sg.ciciai.com":
         region = "ap-singapore-1"
 
