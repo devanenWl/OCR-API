@@ -1,0 +1,21 @@
+# Ignore all files in temp directory
+temp/*
+
+# Ignore .env file
+.env
+
+# Ignore all files in venv directory
+venv/*
+
+# Ignore all files with name starting with test
+test*
+
+# Ignore all files with name ending with .txt except requirements.txt
+*.txt
+!requirements.txt
+
+# Ignore main.py file
+main.py
+
+# Ignore .idea directory
+.idea/
