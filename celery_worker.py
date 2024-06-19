@@ -17,7 +17,7 @@ pdf_collection, result_collection, account_collection = connect()
 def find_account(account_collection):
     account = account_collection.find_one({"use": {"$lt": 50}, "lock": 0})
     if not account:
-        return None
+        return None, None
     # account = account_collection.find_one({"use": {"$lt": 50}})
     # Modify the cookie to be locked and increment the use count
     # If last_used is 0, set it to the current time, if last_used > 86400, set it to the current time, reset use count
