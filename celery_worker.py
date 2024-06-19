@@ -57,7 +57,13 @@ def process_image_task(image, pdf_id, image_index):
         new_msToken, headers, cookie = report_ms_token(cookie, headers)
         time.sleep(5)
         try:
-            image_data = image_processing(cookie, image, headers)
+            try:
+                image_data = image_processing(cookie, image, headers)
+            except Exception as e:
+                print(e)
+                print(traceback.format_exc())
+                account_collection.delete_one({"_id": account_id})
+                continue
             if "Error" in image_data:
                 print("Error in image data")
                 # Delete the account from the database
