@@ -48,7 +48,7 @@ def image_processing(cookie, image, headers):
 
     # Check if signature is correct
     datestamp = amzdate.split('T')[0]
-    url = f"https://image-upload-sg.ciciai.com/?Action=ApplyImageUpload&FileExtension=.png&FileSize={FileSize}&ServiceId={service_id}&Version=2018-08-01"
+    url = f"https://{upload_host}/?Action=ApplyImageUpload&FileExtension=.png&FileSize={FileSize}&ServiceId={service_id}&Version=2018-08-01"
     headers_amz = headers_amz_global
     headers_amz["Authorization"] = f"AWS4-HMAC-SHA256 Credential={access_key}/{datestamp}/{region}/imagex/aws4_request, SignedHeaders=x-amz-date;x-amz-security-token, Signature={signature}"
     resp = requests.get(url, headers=headers_amz).json()
@@ -83,7 +83,7 @@ def image_processing(cookie, image, headers):
     headers_amz = headers_amz_global
     headers_amz["Authorization"] = f"AWS4-HMAC-SHA256 Credential={access_key}/{datestamp}/{region}/imagex/aws4_request, SignedHeaders=x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature={signature}"
 
-    url_commit = f"https://image-upload-sg.ciciai.com/?Action=CommitImageUpload&Version=2018-08-01&ServiceId={service_id}"
+    url_commit = f"https://{upload_host}/?Action=CommitImageUpload&Version=2018-08-01&ServiceId={service_id}"
     resp = requests.post(url_commit, headers=headers_amz, json=data).json()
     return resp
 
