@@ -32,7 +32,8 @@ async def check_status(task_id: str):
     if not task_result or not task_result.ready():
         pdf_collection, result_collection, account_collection = connect()
         result = result_collection.find({"task_id": task_id}).sort("page", 1)
-        if len(list(result)) > 0:
+        result = list(result)
+        if len(result) > 0:
             return_data = """\\begin{document}
             """
             for res in result:
