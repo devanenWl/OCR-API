@@ -11,7 +11,6 @@ def generate_bogus_signature(cookie, data, headers):
     msToken = cookie_process(cookie, headers)
     url = f"https://complete-mmx-coze-helper.hf.space?msToken={msToken}"
     get_bogus_signature = requests.post(url, data=json.dumps(data), headers={"Content-Type": "application/json"}).json()
-    print(get_bogus_signature)
     bogus = get_bogus_signature["data"]["bogus"]
     signature = get_bogus_signature["data"]["signature"]
     return bogus, signature
@@ -89,14 +88,12 @@ def chat(cookie, question, headers):
     true = True
 
     msToken = cookie_process(cookie, headers)
-    print(headers)
     # Get conversation id
     url = f"https://www.coze.com/api/conversation/get_message_list?msToken={msToken}"
     # data = {"cursor":"0","count":15,"bot_id":"7381456780318408722","draft_mode":true,"scene":4}
     data = {"cursor": "0", "count": 15, "bot_id": "7381086531060137992", "draft_mode": false, "scene": 2,
             "biz_kind": "", "insert_history_message_list": []}
     resp = requests.post(url, headers=headers, json=data).json()
-    print(resp)
     if '700012014' in str(resp):
         return 'Banned'
     conversation_id = resp["conversation_id"]
@@ -146,15 +143,10 @@ def chat(cookie, question, headers):
     all_content = b""
     for line in resp.iter_lines():
         if line:
-            # print(line)
             if b'"content":"' and b'"assistant"' and b'"type":"answer"' in line:
                 content = line.split(b'"content":"')[1].split(b'","')[0]
                 all_content += content
-                # print(content.decode('unicode_escape').encode('latin1').decode('utf8'), end="")
-            # if b'event:error' in all_content:
-            #     return 'Error'
             if b'Out of Daily Quota!' in line:
-                # Update accounts use to 50
                 return 'Quota'
             if b'Coze is temporarily unavailable' in line:
                 return 'Wait'
@@ -163,7 +155,6 @@ def chat(cookie, question, headers):
         return 'Quota'
     if not all_content:
         return 'Error'
-    # print('\n')
     all_content = all_content.decode('unicode_escape').encode('latin1').decode('utf8')
     return all_content
 
