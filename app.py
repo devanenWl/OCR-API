@@ -25,7 +25,7 @@ async def submit_pdf(file: UploadFile = File(...)):
     # Submit the task to Celery
     task = process_task.delay(file_path, task_id)
 
-    return {"message": "PDF processing started, go to the status page to check the status", "task_id": task.id}
+    return {"message": "PDF processing started, go to the status page to check the status", "task_id": task_id}
 
 
 @app.get("/check-status/{task_id}")
