@@ -15,7 +15,8 @@ if __name__ == '__main__':
                 # Display the result as latex
                 streamlit.code(response['result'], language='latex')
             else:
-                streamlit.warning('Processing in progress ', response['processed_pages'], 'out of', response['total_pages'], 'pages processed')
+                display_text = f'Processed pages: {response["processed_pages"]}/{response["total_pages"]}'
+                streamlit.warning(f'Processing in progress. {display_text}')
                 streamlit.code(response['result'], language='latex')
             # streamlit.write(response)
         else:
