@@ -12,7 +12,7 @@ import traceback
 # Get environment variables
 REDIS_HOST = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 celery_app = Celery('celery_worker', broker=REDIS_HOST, backend=REDIS_HOST)
-pdf_collection, result_collection, account_collection = connect()
+
 
 def find_account(account_collection):
     account = account_collection.find_one({"use": {"$lt": 50}, "lock": 0})
@@ -129,9 +129,9 @@ def process_task(pdf_path, task_id):
     """
     for result in results:
         text = result["text"]
-        return_data += extract_text(text, '\\begin{document}', '\\end{document}') or \
-                       extract_text(text, '```latex', '```') or \
-                       extract_text(text, '```', '```') or ''
+        return_data += (extract_text(text, '\\begin{document}', '\\end{document}') or
+                        extract_text(text, '```latex', '```') or
+                        extract_text(text, '```', '```') or '')
     return_data += """\\end{document}
     """
     return return_data

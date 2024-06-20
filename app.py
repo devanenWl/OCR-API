@@ -41,9 +41,9 @@ async def check_status(task_id: str):
             """
             for res in result:
                 text = res["text"]
-                return_data += extract_text(text, '\\begin{document}', '\\end{document}') or \
-                               extract_text(text, '```latex', '```') or \
-                               extract_text(text, '```', '```') or ''
+                return_data += (extract_text(text, '\\begin{document}', '\\end{document}') or
+                                extract_text(text, '```latex', '```') or
+                                extract_text(text, '```', '```') or '')
             return_data += """\\end{document}
             """
             total_pages = pdf["total_pages"]
