@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, File
 from uuid import uuid4
 from celery_worker import process_task
 import os
-
+from mongodb import connect
 
 app = FastAPI()
 
@@ -21,7 +21,7 @@ async def submit_pdf(file: UploadFile = File(...)):
         f.write(await file.read())
 
     # Submit the task to Celery
-    task = process_task.delay(file_path)
+    task = process_task.delay(file_path, task_id)
 
     return {"message": "PDF processing started, go to the status page to check the status", "task_id": task.id}
 
@@ -29,7 +29,20 @@ async def submit_pdf(file: UploadFile = File(...)):
 @app.get("/check-status/{task_id}")
 async def check_status(task_id: str):
     task_result = process_task.AsyncResult(task_id)
-    if task_result.ready():
-        return {"status": "complete", "result": task_result.get()}
+    if not task_result or not task_result.ready():
+        pdf_collection, result_collection, account_collection = connect()
+        result = result_collection.find({"task_id": task_id}).sort("page", 1)
+        if len(list(result)) > 0:
+            return_data = """\\begin{document}
+            """
+            for res in result:
+                try:
+                    return_data += res["text"].split('\\begin{document}')[1].split('\\end{document}')[0]
+                except:
+                    continue
+            return_data += """\\end{document}
+            """
+            return {"status": "processing", "result": return_data}
+        return {"status": "processing", "result": "Processing in progress"}
     else:
-        return {"status": "processing"}
+        return {"status": "complete", "result": task_result.get()}

@@ -30,11 +30,7 @@ def image_processing(cookie, image, headers):
         service_id = resp["data"]["service_id"]
     except:
         return 'Error'
-
-    if upload_host == "image-upload-us.ciciai.com":
-        region = "ap-singapore-1"
-    elif upload_host == "image-upload-sg.ciciai.com":
-        region = "ap-singapore-1"
+    region = "ap-singapore-1"
 
     # Initiate image upload
     amzdate = generate_amz_time()
@@ -150,18 +146,19 @@ def chat(cookie, question, headers):
     all_content = b""
     for line in resp.iter_lines():
         if line:
-            print(line)
+            # print(line)
             if b'"content":"' and b'"assistant"' and b'"type":"answer"' in line:
                 content = line.split(b'"content":"')[1].split(b'","')[0]
                 all_content += content
                 # print(content.decode('unicode_escape').encode('latin1').decode('utf8'), end="")
             # if b'event:error' in all_content:
             #     return 'Error'
-            if b'Out of Daily Quota!' in all_content:
+            if b'Out of Daily Quota!' in line:
                 # Update accounts use to 50
                 return 'Quota'
-            if b'Coze is temporarily unavailable' in all_content:
+            if b'Coze is temporarily unavailable' in line:
                 return 'Wait'
+                # return 'Quota'
     if b'You have exceeded the daily limit for sending messages to the bot. Please try again later.' in all_content:
         return 'Quota'
     if not all_content:

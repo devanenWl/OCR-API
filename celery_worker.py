@@ -44,25 +44,30 @@ def recover_use(account_id, account_collection):
     return
 
 
-def process_image_task(image, pdf_id, image_index):
+def process_image_task(image, pdf_id, image_index, task_id):
     while True:
-        pdf_collection, result_collection, account_collection = connect()
-        headers = headers_global
-        cookie, account_id = find_account(account_collection)
-        headers["Cookie"] = cookie
-        if not cookie:
-            print("No account available")
+        try:
+            pdf_collection, result_collection, account_collection = connect()
+            headers = headers_global
+            cookie, account_id = find_account(account_collection)
+            headers["Cookie"] = cookie
+            if not cookie:
+                print("No account available")
+                time.sleep(30)
+                continue
+            new_msToken, headers, cookie = report_ms_token(cookie, headers)
             time.sleep(5)
+        except:
+            print("Error in finding account")
+            time.sleep(30)
             continue
-        new_msToken, headers, cookie = report_ms_token(cookie, headers)
-        time.sleep(5)
         try:
             try:
                 image_data = image_processing(cookie, image, headers)
             except Exception as e:
                 print(e)
                 print(traceback.format_exc())
-                account_collection.delete_one({"_id": account_id})
+                release_account(account_id, account_collection)
                 continue
             if "Error" in image_data:
                 print("Error in image data")
@@ -74,12 +79,12 @@ def process_image_task(image, pdf_id, image_index):
             if "Error" in data_return:
                 print("Error in data return")
                 release_account(account_id, account_collection)
-                recover_use(account_id, account_collection)
+                # recover_use(account_id, account_collection)
                 time.sleep(random.randint(10, 30))
                 continue
             if 'Wait' in data_return:
                 print("Wait few seconds")
-                time.sleep(random.randint(10, 30))
+                time.sleep(random.randint(60, 120))
                 release_account(account_id, account_collection)
                 recover_use(account_id, account_collection)
                 continue
@@ -90,8 +95,9 @@ def process_image_task(image, pdf_id, image_index):
                 time.sleep(random.randint(10, 30))
                 continue
             release_account(account_id, account_collection)
-            struct_result = {"pdf": pdf_id, "image": [], "text": data_return, "page": image_index}
+            struct_result = {"pdf": pdf_id, "image": [], "text": data_return, "page": image_index, "task_id": task_id}
             result_collection.insert_one(struct_result)
+            time.sleep(random.randint(20, 30))
             break
         except Exception as e:
             release_account(account_id, account_collection)
@@ -101,17 +107,17 @@ def process_image_task(image, pdf_id, image_index):
 
 
 @celery_app.task
-def process_task(pdf_path):
+def process_task(pdf_path, task_id):
     pdf_collection, result_collection, account_collection = connect()
     images = split_pdf_into_images(pdf_path)
-    struct_pdf = {"images": [], "pdf": pdf_path, "total_pages": len(images)}
+    struct_pdf = {"images": [], "pdf": pdf_path, "total_pages": len(images), "task_id": task_id}
     pdf_id = pdf_collection.insert_one(struct_pdf).inserted_id
 
     tasks = []
     # Limit the number of concurrent tasks to 5
     with ThreadPoolExecutor(max_workers=5) as executor:
         for index, image in enumerate(images):
-            tasks.append(executor.submit(process_image_task, image, pdf_id, index))
+            tasks.append(executor.submit(process_image_task, image, pdf_id, index, task_id))
             time.sleep(15)
         for task in tasks:
             task.result() # Wait for all tasks to finish

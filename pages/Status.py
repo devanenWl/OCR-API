@@ -16,6 +16,7 @@ if __name__ == '__main__':
                 streamlit.code(response['result'], language='latex')
             else:
                 streamlit.warning('Processing in progress')
+                streamlit.code(response['result'], language='latex')
             # streamlit.write(response)
         else:
             streamlit.error(response.text)
