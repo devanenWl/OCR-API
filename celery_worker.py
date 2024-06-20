@@ -131,8 +131,13 @@ def process_task(pdf_path, task_id):
         try:
             return_data += result["text"].split('\\begin{document}')[1].split('\\end{document}')[0]
         except Exception as e:
-            print(e)
-            continue
+            try:
+                try:
+                    return_data += result["text"].split('```latex')[1].split('```')[0]
+                except:
+                    return_data += result["text"].split('```')[1].split('```')[0]
+            except Exception as e:
+                continue
     return_data += """\\end{document}
     """
     return return_data

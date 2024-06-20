@@ -39,8 +39,14 @@ async def check_status(task_id: str):
             for res in result:
                 try:
                     return_data += res["text"].split('\\begin{document}')[1].split('\\end{document}')[0]
-                except:
-                    continue
+                except Exception as e:
+                    try:
+                        try:
+                            return_data += res["text"].split('```latex')[1].split('```')[0]
+                        except:
+                            return_data += res["text"].split('```')[1].split('```')[0]
+                    except Exception as e:
+                        continue
             return_data += """\\end{document}
             """
             return {"status": "processing", "result": return_data}
