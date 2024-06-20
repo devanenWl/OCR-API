@@ -47,7 +47,8 @@ async def check_status(task_id: str):
             return_data += """\\end{document}
             """
             status = "complete" if len(result) == pdf["total_pages"] else "processing"
-            return {"status": status, "result": return_data, "processed_pages": len(result), "total_pages": pdf["total_pages"]}
+            missing_pages = [i+1 for i in range(pdf["total_pages"]) if i not in [res["page"] for res in result]]
+            return {"status": status, "result": return_data, "processed_pages": len(result), "total_pages": pdf["total_pages"], "missing_pages": missing_pages}
         return {"status": "processing", "result": "Processing in progress", "processed_pages": 0, "total_pages": pdf["total_pages"]}
     else:
         return {"status": "complete", "result": task_result.get()}
