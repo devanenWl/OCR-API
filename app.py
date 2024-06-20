@@ -3,6 +3,7 @@ from uuid import uuid4
 from celery_worker import process_task
 import os
 from mongodb import connect
+from helper import extract_text
 
 app = FastAPI()
 
@@ -11,6 +12,7 @@ try:
     os.mkdir("./temp")
 except FileExistsError:
     pass
+
 
 @app.post("/submit-pdf/")
 async def submit_pdf(file: UploadFile = File(...)):
@@ -33,23 +35,20 @@ async def check_status(task_id: str):
         pdf_collection, result_collection, account_collection = connect()
         result = result_collection.find({"task_id": task_id}).sort("page", 1)
         result = list(result)
+        pdf = pdf_collection.find_one({"task_id": task_id})
         if len(result) > 0:
             return_data = """\\begin{document}
             """
             for res in result:
-                try:
-                    return_data += res["text"].split('\\begin{document}')[1].split('\\end{document}')[0]
-                except Exception as e:
-                    try:
-                        try:
-                            return_data += res["text"].split('```latex')[1].split('```')[0]
-                        except:
-                            return_data += res["text"].split('```')[1].split('```')[0]
-                    except Exception as e:
-                        continue
+                text = res["text"]
+                return_data += extract_text(text, '\\begin{document}', '\\end{document}') or \
+                               extract_text(text, '```latex', '```') or \
+                               extract_text(text, '```', '```') or ''
             return_data += """\\end{document}
             """
-            return {"status": "processing", "result": return_data}
+            total_pages = pdf["total_pages"]
+            status = "complete" if len(result) == total_pages else "processing"
+            return {"status": status, "result": return_data}
         return {"status": "processing", "result": "Processing in progress"}
     else:
         return {"status": "complete", "result": task_result.get()}

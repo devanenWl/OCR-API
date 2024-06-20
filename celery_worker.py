@@ -1,6 +1,6 @@
 from celery import Celery
 import os
-from helper import split_pdf_into_images
+from helper import split_pdf_into_images, extract_text
 from coze_api import image_processing, report_ms_token, chat
 from mongodb import connect
 from concurrent.futures import ThreadPoolExecutor
@@ -128,16 +128,10 @@ def process_task(pdf_path, task_id):
     return_data = """\\begin{document}
     """
     for result in results:
-        try:
-            return_data += result["text"].split('\\begin{document}')[1].split('\\end{document}')[0]
-        except Exception as e:
-            try:
-                try:
-                    return_data += result["text"].split('```latex')[1].split('```')[0]
-                except:
-                    return_data += result["text"].split('```')[1].split('```')[0]
-            except Exception as e:
-                continue
+        text = result["text"]
+        return_data += extract_text(text, '\\begin{document}', '\\end{document}') or \
+                       extract_text(text, '```latex', '```') or \
+                       extract_text(text, '```', '```') or ''
     return_data += """\\end{document}
     """
     return return_data

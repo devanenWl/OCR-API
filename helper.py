@@ -54,3 +54,10 @@ def uuid_generator():
 def randDID():
     import time
     return str(random.randint(0, 999999999) + int(time.time()))
+
+
+def extract_text(text, start_delimiter, end_delimiter):
+    try:
+        return text.split(start_delimiter)[1].split(end_delimiter)[0]
+    except IndexError:
+        return None
