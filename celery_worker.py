@@ -56,47 +56,47 @@ def process_image_task(image, pdf_id, image_index, task_id):
                 time.sleep(30)
                 continue
             new_msToken, headers, cookie = report_ms_token(cookie, headers)
-            print("Page: " + image_index + ' - ' + "Got account: " + account_id)
+            print("Page: " + str(image_index) + ' - ' + "Got account: " + account_id)
             time.sleep(5)
         except:
-            print("Page: " + image_index + ' - ' + "Error in getting account")
+            print("Page: " + str(image_index) + ' - ' + "Error in getting account")
             time.sleep(30)
             continue
         try:
             try:
                 image_data = image_processing(cookie, image, headers)
             except Exception as e:
-                print("Page: " + image_index + ' - ' + "Account: " + account_id + ' - ' + "Error in image processing")
+                print("Page: " + str(image_index) + ' - ' + "Account: " + account_id + ' - ' + "Error in image processing")
                 release_account(account_id, account_collection)
                 continue
             if "Error" in image_data:
-                print("Page: " + image_index + ' - ' + "Error in image data")
+                print("Page: " + str(image_index) + ' - ' + "Error in image data")
                 # Delete the account from the database
                 account_collection.delete_one({"_id": account_id})
                 time.sleep(random.randint(10, 30))
                 continue
 
             # Send the image data to the chat API
-            print("Page: " + image_index + ' - ' + "Sending image data to chat")
+            print("Page: " + str(image_index) + ' - ' + "Sending image data to chat")
             data_return = chat(cookie, image_data, headers)
             if "Error" in data_return:
-                print("Page: " + image_index + ' - ' + "Error in data return")
+                print("Page: " + str(image_index) + ' - ' + "Error in data return")
                 release_account(account_id, account_collection)
                 # recover_use(account_id, account_collection)
                 time.sleep(random.randint(10, 30))
                 continue
             if 'Wait' in data_return:
-                print("Page: " + image_index + ' - ' + "Wait few seconds")
+                print("Page: " + str(image_index) + ' - ' + "Wait few seconds")
                 release_account(account_id, account_collection)
                 recover_use(account_id, account_collection)
                 continue
             if 'Quota' in data_return or 'Banned' in data_return:
-                print("Page: " + image_index + ' - ' + "Account: " + account_id + ' - ' + "Quota exceeded")
+                print("Page: " + str(image_index) + ' - ' + "Account: " + account_id + ' - ' + "Quota exceeded")
                 release_account(account_id, account_collection)
                 lock_account(account_id, account_collection)
                 time.sleep(random.randint(10, 30))
                 continue
-            print("Page: " + image_index + ' - ' + "Done!")
+            print("Page: " + str(image_index) + ' - ' + "Done!")
             release_account(account_id, account_collection)
             struct_result = {"pdf": pdf_id, "image": [], "text": data_return, "page": image_index, "task_id": task_id}
             result_collection.insert_one(struct_result)
@@ -104,7 +104,7 @@ def process_image_task(image, pdf_id, image_index, task_id):
             break
         except Exception as e:
             release_account(account_id, account_collection)
-            print("Page: " + image_index + ' - ' + "Unknown error")
+            print("Page: " + str(image_index) + ' - ' + "Unknown error")
             print(traceback.format_exc())
             continue
 
