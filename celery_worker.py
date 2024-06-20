@@ -56,17 +56,18 @@ def process_image_task(image, pdf_id, image_index, task_id):
                 time.sleep(30)
                 continue
             new_msToken, headers, cookie = report_ms_token(cookie, headers)
-            print("Page: " + str(image_index) + ' - ' + "Got account: " + account_id)
+            print("Page: " + str(image_index) + ' - ' + "Got account: " + str(account_id))
             time.sleep(5)
         except:
             print("Page: " + str(image_index) + ' - ' + "Error in getting account")
+            print(traceback.format_exc())
             time.sleep(30)
             continue
         try:
             try:
                 image_data = image_processing(cookie, image, headers)
             except Exception as e:
-                print("Page: " + str(image_index) + ' - ' + "Account: " + account_id + ' - ' + "Error in image processing")
+                print("Page: " + str(image_index) + ' - ' + "Account: " + str(account_id) + ' - ' + "Error in image processing")
                 release_account(account_id, account_collection)
                 continue
             if "Error" in image_data:
@@ -91,7 +92,7 @@ def process_image_task(image, pdf_id, image_index, task_id):
                 recover_use(account_id, account_collection)
                 continue
             if 'Quota' in data_return or 'Banned' in data_return:
-                print("Page: " + str(image_index) + ' - ' + "Account: " + account_id + ' - ' + "Quota exceeded")
+                print("Page: " + str(image_index) + ' - ' + "Account: " + str(account_id) + ' - ' + "Quota exceeded")
                 release_account(account_id, account_collection)
                 lock_account(account_id, account_collection)
                 time.sleep(random.randint(10, 30))
