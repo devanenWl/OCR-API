@@ -91,6 +91,7 @@ def process_image_task(image, pdf_id, image_index, task_id):
                 continue
             if 'Wait' in data_return:
                 print("Page: " + str(image_index) + ' - ' + "Wait few seconds")
+                time.sleep(random.randint(10, 30))
                 release_account(account_id, account_collection)
                 recover_use(account_id, account_collection)
                 continue
