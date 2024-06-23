@@ -5,6 +5,7 @@ from coze_api import image_processing, report_ms_token, chat
 from mongodb import connect
 from concurrent.futures import ThreadPoolExecutor
 from run import headers_global
+from google_api import image_processing_google
 import time
 import random
 import traceback
@@ -12,13 +13,14 @@ import traceback
 # Get environment variables
 REDIS_HOST = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 celery_app = Celery('celery_worker', broker=REDIS_HOST, backend=REDIS_HOST)
+MODE = os.getenv('MODE', 'COZE')
 
 
 def find_account(account_collection):
     account = account_collection.find_one({"use": {"$lt": 50}, "lock": 0})
     if not account:
         # Find account last used more than 24 hours ago, do not care about the use count
-        account = account_collection.find_one({ "lock": 0, "last_used": {"$lt": int(time.time()) - 86400}})
+        account = account_collection.find_one({"lock": 0, "last_used": {"$lt": int(time.time()) - 86400}})
     if not account:
         return None, None
     # account = account_collection.find_one({"use": {"$lt": 50}})
@@ -48,71 +50,87 @@ def recover_use(account_id, account_collection):
 
 
 def process_image_task(image, pdf_id, image_index, task_id):
-    while True:
-        try:
-            pdf_collection, result_collection, account_collection = connect()
-            headers = headers_global
-            cookie, account_id = find_account(account_collection)
-            headers["Cookie"] = cookie
-            if not cookie:
-                print("No account available")
+    if MODE == 'COZE':
+        while True:
+            try:
+                pdf_collection, result_collection, account_collection = connect()
+                headers = headers_global
+                cookie, account_id = find_account(account_collection)
+                headers["Cookie"] = cookie
+                if not cookie:
+                    print("No account available")
+                    time.sleep(30)
+                    continue
+                new_msToken, headers, cookie = report_ms_token(cookie, headers)
+                print("Page: " + str(image_index) + ' - ' + "Got account: " + str(account_id))
+                time.sleep(5)
+            except:
+                print("Page: " + str(image_index) + ' - ' + "Error in getting account")
+                print(traceback.format_exc())
                 time.sleep(30)
                 continue
-            new_msToken, headers, cookie = report_ms_token(cookie, headers)
-            print("Page: " + str(image_index) + ' - ' + "Got account: " + str(account_id))
-            time.sleep(5)
-        except:
-            print("Page: " + str(image_index) + ' - ' + "Error in getting account")
-            print(traceback.format_exc())
-            time.sleep(30)
-            continue
-        try:
             try:
-                image_data = image_processing(cookie, image, headers)
+                try:
+                    image_data = image_processing(cookie, image, headers)
+                except Exception as e:
+                    print("Page: " + str(image_index) + ' - ' + "Account: " + str(account_id) + ' - ' + "Error in image processing")
+                    release_account(account_id, account_collection)
+                    continue
+                if "Error" in image_data:
+                    print("Page: " + str(image_index) + ' - ' + "Error in image data")
+                    # Delete the account from the database
+                    account_collection.delete_one({"_id": account_id})
+                    time.sleep(random.randint(10, 30))
+                    continue
+
+                # Send the image data to the chat API
+                print("Page: " + str(image_index) + ' - ' + "Sending image data to chat")
+                data_return = chat(cookie, image_data, headers)
+                if "Error" in data_return:
+                    print("Page: " + str(image_index) + ' - ' + "Error in data return")
+                    release_account(account_id, account_collection)
+                    # recover_use(account_id, account_collection)
+                    time.sleep(random.randint(10, 30))
+                    continue
+                if 'Wait' in data_return:
+                    print("Page: " + str(image_index) + ' - ' + "Wait few seconds")
+                    time.sleep(random.randint(10, 30))
+                    release_account(account_id, account_collection)
+                    recover_use(account_id, account_collection)
+                    continue
+                if 'Quota' in data_return or 'Banned' in data_return:
+                    print("Page: " + str(image_index) + ' - ' + "Account: " + str(account_id) + ' - ' + "Quota exceeded")
+                    release_account(account_id, account_collection)
+                    lock_account(account_id, account_collection)
+                    time.sleep(random.randint(10, 30))
+                    continue
+                print("Page: " + str(image_index) + ' - ' + "Done!")
+                release_account(account_id, account_collection)
+                struct_result = {"pdf": pdf_id, "image": [], "text": data_return, "page": image_index, "task_id": task_id}
+                result_collection.insert_one(struct_result)
+                time.sleep(random.randint(20, 30))
+                break
             except Exception as e:
-                print("Page: " + str(image_index) + ' - ' + "Account: " + str(account_id) + ' - ' + "Error in image processing")
                 release_account(account_id, account_collection)
+                print("Page: " + str(image_index) + ' - ' + "Unknown error")
+                print(traceback.format_exc())
                 continue
-            if "Error" in image_data:
-                print("Page: " + str(image_index) + ' - ' + "Error in image data")
-                # Delete the account from the database
-                account_collection.delete_one({"_id": account_id})
-                time.sleep(random.randint(10, 30))
+    elif MODE == 'GOOGLE':
+        while True:
+            try:
+                pdf_collection, result_collection, account_collection = connect()
+                print("Page: " + str(image_index) + ' - ' + "Sending image data to chat")
+                data_return = image_processing_google(image)
+                struct_result = {"pdf": pdf_id, "image": [], "text": data_return, "page": image_index, "task_id": task_id}
+                result_collection.insert_one(struct_result)
+                print("Page: " + str(image_index) + ' - ' + "Done!")
+                time.sleep(random.randint(10, 15))
+                break
+            except:
+                print("Page: " + str(image_index) + ' - ' + "Error in sending image data to chat")
+                print(traceback.format_exc())
+                time.sleep(5)
                 continue
-
-            # Send the image data to the chat API
-            print("Page: " + str(image_index) + ' - ' + "Sending image data to chat")
-            data_return = chat(cookie, image_data, headers)
-            if "Error" in data_return:
-                print("Page: " + str(image_index) + ' - ' + "Error in data return")
-                release_account(account_id, account_collection)
-                # recover_use(account_id, account_collection)
-                time.sleep(random.randint(10, 30))
-                continue
-            if 'Wait' in data_return:
-                print("Page: " + str(image_index) + ' - ' + "Wait few seconds")
-                time.sleep(random.randint(10, 30))
-                release_account(account_id, account_collection)
-                recover_use(account_id, account_collection)
-                continue
-            if 'Quota' in data_return or 'Banned' in data_return:
-                print("Page: " + str(image_index) + ' - ' + "Account: " + str(account_id) + ' - ' + "Quota exceeded")
-                release_account(account_id, account_collection)
-                lock_account(account_id, account_collection)
-                time.sleep(random.randint(10, 30))
-                continue
-            print("Page: " + str(image_index) + ' - ' + "Done!")
-            release_account(account_id, account_collection)
-            struct_result = {"pdf": pdf_id, "image": [], "text": data_return, "page": image_index, "task_id": task_id}
-            result_collection.insert_one(struct_result)
-            time.sleep(random.randint(20, 30))
-            break
-        except Exception as e:
-            release_account(account_id, account_collection)
-            print("Page: " + str(image_index) + ' - ' + "Unknown error")
-            print(traceback.format_exc())
-            continue
-
 
 @celery_app.task
 def process_task(pdf_path, task_id):
@@ -139,7 +157,7 @@ def process_task(pdf_path, task_id):
         text = result["text"]
         return_data += (extract_text(text, '\\begin{document}', '\\end{document}') or
                         extract_text(text, '```latex', '```') or
-                        extract_text(text, '```', '```') or '')
+                        extract_text(text, '```', '```') or text)
     return_data += """\\end{document}
     """
     return return_data

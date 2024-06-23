@@ -61,3 +61,8 @@ def extract_text(text, start_delimiter, end_delimiter):
         return text.split(start_delimiter)[1].split(end_delimiter)[0]
     except IndexError:
         return None
+
+
+def convert_image_bytes_to_base64(image_bytes):
+    import base64
+    return base64.b64encode(image_bytes).decode('utf-8')
