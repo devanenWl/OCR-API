@@ -121,10 +121,18 @@ def process_image_task(image, pdf_id, image_index, task_id):
                 pdf_collection, result_collection, account_collection = connect()
                 print("Page: " + str(image_index) + ' - ' + "Sending image data to chat")
                 data_return = image_processing_google(image)
+                if "Error" in data_return:
+                    print("Page: " + str(image_index) + ' - ' + "Error in data return")
+                    time.sleep(30)
+                    continue
+                if 'Quota' in data_return:
+                    print("Page: " + str(image_index) + ' - ' + "Quota exceeded")
+                    time.sleep(30)
+                    continue
                 struct_result = {"pdf": pdf_id, "image": [], "text": data_return, "page": image_index, "task_id": task_id}
                 result_collection.insert_one(struct_result)
                 print("Page: " + str(image_index) + ' - ' + "Done!")
-                time.sleep(random.randint(10, 15))
+                time.sleep(random.randint(20, 30))
                 break
             except:
                 print("Page: " + str(image_index) + ' - ' + "Error in sending image data to chat")
