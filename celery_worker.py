@@ -17,6 +17,9 @@ celery_app = Celery('celery_worker', broker=REDIS_HOST, backend=REDIS_HOST)
 def find_account(account_collection):
     account = account_collection.find_one({"use": {"$lt": 50}, "lock": 0})
     if not account:
+        # Find account last used more than 24 hours ago, do not care about the use count
+        account = account_collection.find_one({ "lock": 0, "last_used": {"$lt": int(time.time()) - 86400}})
+    if not account:
         return None, None
     # account = account_collection.find_one({"use": {"$lt": 50}})
     # Modify the cookie to be locked and increment the use count
