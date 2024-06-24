@@ -16,11 +16,11 @@ celery_app = Celery('celery_worker', broker=REDIS_HOST, backend=REDIS_HOST)
 MODE = os.getenv('MODE', 'COZE')
 
 
-def find_account(account_collection):
-    account = account_collection.find_one({"use": {"$lt": 50}, "lock": 0})
+def find_account(collection):
+    account = collection.find_one({"use": {"$lt": 50}, "lock": 0})
     if not account:
         # Find account last used more than 24 hours ago, do not care about the use count
-        account = account_collection.find_one({"lock": 0, "last_used": {"$lt": int(time.time()) - 86400}})
+        account = collection.find_one({"lock": 0, "last_used": {"$lt": int(time.time()) - 86400}})
     if not account:
         return None, None
     # account = account_collection.find_one({"use": {"$lt": 50}})
@@ -28,27 +28,27 @@ def find_account(account_collection):
     # If last_used is 0, set it to the current time, if last_used > 86400, set it to the current time, reset use count
     if int(time.time()) - account["last_used"] > 86400:
         timestamp = int(time.time())
-        account_collection.update_one({"_id": account["_id"]}, {"$set": {"last_used": timestamp, "use": 1, "lock": 1}})
+        collection.update_one({"_id": account["_id"]}, {"$set": {"last_used": timestamp, "use": 1, "lock": 1}})
     else:
-        account_collection.update_one({"_id": account["_id"]}, {"$set": {"lock": 1}, "$inc": {"use": 1}})
-    if account['cookie']:
+        collection.update_one({"_id": account["_id"]}, {"$set": {"lock": 1}, "$inc": {"use": 1}})
+    if "cookie" in str(account):
         return account["cookie"], account["_id"]
     else:
         return account["key"], account["_id"]
 
 
-def release_account(account_id, account_collection):
-    account_collection.update_one({"_id": account_id}, {"$set": {"lock": 0}})
+def release_account(data_id, collection):
+    collection.update_one({"_id": data_id}, {"$set": {"lock": 0}})
     return
 
 
-def lock_account(account_id, account_collection):
-    account_collection.update_one({"_id": account_id}, {"$set": {"use": 50}})
+def lock_account(data_id, collection):
+    collection.update_one({"_id": data_id}, {"$set": {"use": 50}})
     return
 
 
-def recover_use(account_id, account_collection):
-    account_collection.update_one({"_id": account_id}, {"$inc": {"use": -1}})
+def recover_use(data_id, collection):
+    collection.update_one({"_id": data_id}, {"$inc": {"use": -1}})
     return
 
 
@@ -120,10 +120,14 @@ def process_image_task(image, pdf_id, image_index, task_id):
                 continue
     elif MODE == 'GOOGLE':
         while True:
+            print('Page: ' + str(image_index) + ' - ' + 'Processing image')
             try:
                 pdf_collection, result_collection, account_collection, google_api_collection = connect()
                 api_key, api_key_id = find_account(google_api_collection)
-            except:
+                print("Page: " + str(image_index) + ' - ' + "Got key: " + str(api_key) + ' - ' + "Key ID: " + str(api_key_id))
+            except Exception as e:
+                print("Page: " + str(image_index) + ' - ' + "Error in getting account - " + str(e))
+                time.sleep(30)
                 continue
             if not api_key:
                 print("No account available")
@@ -134,22 +138,25 @@ def process_image_task(image, pdf_id, image_index, task_id):
                 data_return = image_processing_google(image, api_key)
                 if "Error" in data_return:
                     print("Page: " + str(image_index) + ' - ' + "Error in data return")
+                    release_account(api_key_id, google_api_collection)
                     time.sleep(30)
                     continue
                 if 'Quota' in data_return:
                     print("Page: " + str(image_index) + ' - ' + "Quota exceeded")
+                    lock_account(api_key_id, google_api_collection)
+                    release_account(api_key_id, google_api_collection)
                     time.sleep(30)
                     continue
                 struct_result = {"pdf": pdf_id, "image": [], "text": data_return, "page": image_index, "task_id": task_id}
                 result_collection.insert_one(struct_result)
                 print("Page: " + str(image_index) + ' - ' + "Done!")
-                release_account(api_key, api_key_id)
-                time.sleep(random.randint(20, 30))
+                release_account(api_key_id, google_api_collection)
+                time.sleep(random.randint(10, 15))
                 break
             except:
                 print("Page: " + str(image_index) + ' - ' + "Error in sending image data to chat")
                 print(traceback.format_exc())
-                release_account(api_key, api_key_id)
+                release_account(api_key_id, google_api_collection)
                 time.sleep(5)
                 continue
 
