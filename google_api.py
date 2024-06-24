@@ -106,7 +106,7 @@ def image_processing_google(image_bytes, key, image_index):
             return 'Quota'
         if 'RECITATION' in str(response):
             return 'Recitation'
-        print('Page: ' + str(image_index) + ' - ' + 'Data return: ' + str(response))
+        # print('Page: ' + str(image_index) + ' - ' + 'Data return: ' + str(response))
         return_text = ''
         for data in response:
             return_text += str(data['candidates'][0]['content']['parts'][0]['text'])
