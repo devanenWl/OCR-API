@@ -10,6 +10,7 @@ def image_processing_google(image_bytes, key):
         response = requests.post(url, json=data).json()
         if 'quota' in str(response):
             return 'Quota'
+        print(response)
         return_text = ''
         for data in response:
             return_text += str(data['candidates'][0]['content']['parts'][0]['text'])
