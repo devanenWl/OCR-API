@@ -52,7 +52,7 @@ def recover_use(data_id, collection):
     return
 
 
-def process_image_task(image, pdf_id, image_index, task_id):
+def process_image_task(image, pdf_id, image_index, task_id, MODE=MODE):
     if MODE == 'COZE':
         while True:
             try:
@@ -112,7 +112,7 @@ def process_image_task(image, pdf_id, image_index, task_id):
                 struct_result = {"pdf": pdf_id, "image": [], "text": data_return, "page": image_index, "task_id": task_id}
                 result_collection.insert_one(struct_result)
                 time.sleep(random.randint(20, 30))
-                break
+                return data_return
             except Exception as e:
                 release_account(account_id, account_collection)
                 print("Page: " + str(image_index) + ' - ' + "Unknown error")
@@ -148,10 +148,9 @@ def process_image_task(image, pdf_id, image_index, task_id):
                     time.sleep(30)
                     continue
                 if 'Recitation' in data_return:
-                    print("Page: " + str(image_index) + ' - ' + "Recitation")
+                    print("Page: " + str(image_index) + ' - ' + "Recitation" + ' - Try Coze')
                     release_account(api_key_id, google_api_collection)
-                    time.sleep(15)
-                    continue
+                    data_return = process_image_task(image, pdf_id, image_index, task_id, MODE='COZE')
                 struct_result = {"pdf": pdf_id, "image": [], "text": data_return, "page": image_index, "task_id": task_id}
                 result_collection.insert_one(struct_result)
                 print("Page: " + str(image_index) + ' - ' + "Done!")
@@ -176,7 +175,7 @@ def process_task(pdf_path, task_id):
     # Limit the number of concurrent tasks to 5
     with ThreadPoolExecutor(max_workers=5) as executor:
         for index, image in enumerate(images):
-            tasks.append(executor.submit(process_image_task, image, pdf_id, index, task_id))
+            tasks.append(executor.submit(process_image_task, image, pdf_id, index, task_id, MODE))
             time.sleep(15)
         for task in tasks:
             task.result() # Wait for all tasks to finish
