@@ -156,6 +156,7 @@ def process_image_task(image, pdf_id, image_index, task_id, MODE):
                     if recitation > 3:
                         # If recitation more than 3 times, switch to COZE
                         data_return = process_image_task(image, pdf_id, image_index, task_id, MODE='COZE')
+                        return
                     else:
                         continue
                 struct_result = {"pdf": pdf_id, "image": [], "text": data_return, "page": image_index, "task_id": task_id}
