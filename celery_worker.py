@@ -147,6 +147,11 @@ def process_image_task(image, pdf_id, image_index, task_id):
                     release_account(api_key_id, google_api_collection)
                     time.sleep(30)
                     continue
+                if 'Recitation' in data_return:
+                    print("Page: " + str(image_index) + ' - ' + "Recitation")
+                    release_account(api_key_id, google_api_collection)
+                    time.sleep(15)
+                    continue
                 struct_result = {"pdf": pdf_id, "image": [], "text": data_return, "page": image_index, "task_id": task_id}
                 result_collection.insert_one(struct_result)
                 print("Page: " + str(image_index) + ' - ' + "Done!")
