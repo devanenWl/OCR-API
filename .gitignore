@@ -19,3 +19,7 @@ main.py
 
 # Ignore .idea directory
 .idea/
+
+# Ignore .jpg .png
+*.png
+*.jpg

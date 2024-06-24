@@ -32,7 +32,7 @@ async def submit_pdf(file: UploadFile = File(...)):
 async def check_status(task_id: str):
     task_result = process_task.AsyncResult(task_id)
     if task_result.state == "PENDING" or not task_result.ready():
-        pdf_collection, result_collection, account_collection = connect()
+        pdf_collection, result_collection, account_collection, google_api_collection = connect()
         result = result_collection.find({"task_id": task_id}).sort("page", 1)
         result = list(result)
         pdf = pdf_collection.find_one({"task_id": task_id})

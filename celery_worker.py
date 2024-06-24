@@ -31,7 +31,10 @@ def find_account(account_collection):
         account_collection.update_one({"_id": account["_id"]}, {"$set": {"last_used": timestamp, "use": 1, "lock": 1}})
     else:
         account_collection.update_one({"_id": account["_id"]}, {"$set": {"lock": 1}, "$inc": {"use": 1}})
-    return account["cookie"], account["_id"]
+    if account['cookie']:
+        return account["cookie"], account["_id"]
+    else:
+        return account["key"], account["_id"]
 
 
 def release_account(account_id, account_collection):
@@ -53,7 +56,7 @@ def process_image_task(image, pdf_id, image_index, task_id):
     if MODE == 'COZE':
         while True:
             try:
-                pdf_collection, result_collection, account_collection = connect()
+                pdf_collection, result_collection, account_collection, google_api_collection = connect()
                 headers = headers_global
                 cookie, account_id = find_account(account_collection)
                 headers["Cookie"] = cookie
@@ -118,9 +121,17 @@ def process_image_task(image, pdf_id, image_index, task_id):
     elif MODE == 'GOOGLE':
         while True:
             try:
-                pdf_collection, result_collection, account_collection = connect()
+                pdf_collection, result_collection, account_collection, google_api_collection = connect()
+                api_key, api_key_id = find_account(google_api_collection)
+            except:
+                continue
+            if not api_key:
+                print("No account available")
+                time.sleep(30)
+                continue
+            try:
                 print("Page: " + str(image_index) + ' - ' + "Sending image data to chat")
-                data_return = image_processing_google(image)
+                data_return = image_processing_google(image, api_key)
                 if "Error" in data_return:
                     print("Page: " + str(image_index) + ' - ' + "Error in data return")
                     time.sleep(30)
@@ -132,17 +143,19 @@ def process_image_task(image, pdf_id, image_index, task_id):
                 struct_result = {"pdf": pdf_id, "image": [], "text": data_return, "page": image_index, "task_id": task_id}
                 result_collection.insert_one(struct_result)
                 print("Page: " + str(image_index) + ' - ' + "Done!")
+                release_account(api_key, api_key_id)
                 time.sleep(random.randint(20, 30))
                 break
             except:
                 print("Page: " + str(image_index) + ' - ' + "Error in sending image data to chat")
                 print(traceback.format_exc())
+                release_account(api_key, api_key_id)
                 time.sleep(5)
                 continue
 
 @celery_app.task
 def process_task(pdf_path, task_id):
-    pdf_collection, result_collection, account_collection = connect()
+    pdf_collection, result_collection, account_collection, google_api_collection = connect()
     images = split_pdf_into_images(pdf_path)
     struct_pdf = {"images": [], "pdf": pdf_path, "total_pages": len(images), "task_id": task_id}
     pdf_id = pdf_collection.insert_one(struct_pdf).inserted_id
