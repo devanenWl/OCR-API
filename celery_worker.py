@@ -52,7 +52,7 @@ def recover_use(data_id, collection):
     return
 
 
-def process_image_task(image, pdf_id, image_index, task_id, MODE=MODE):
+def process_image_task(image, pdf_id, image_index, task_id, MODE):
     if MODE == 'COZE':
         while True:
             try:
@@ -119,6 +119,7 @@ def process_image_task(image, pdf_id, image_index, task_id, MODE=MODE):
                 print(traceback.format_exc())
                 continue
     elif MODE == 'GOOGLE':
+        recitation = 0
         while True:
             print('Page: ' + str(image_index) + ' - ' + 'Processing image')
             try:
@@ -150,7 +151,13 @@ def process_image_task(image, pdf_id, image_index, task_id, MODE=MODE):
                 if 'Recitation' in data_return:
                     print("Page: " + str(image_index) + ' - ' + "Recitation" + ' - Try Coze')
                     release_account(api_key_id, google_api_collection)
-                    data_return = process_image_task(image, pdf_id, image_index, task_id, MODE='COZE')
+                    time.sleep(15)
+                    recitation += 1
+                    if recitation > 3:
+                        # If recitation more than 3 times, switch to COZE
+                        data_return = process_image_task(image, pdf_id, image_index, task_id, MODE='COZE')
+                    else:
+                        continue
                 struct_result = {"pdf": pdf_id, "image": [], "text": data_return, "page": image_index, "task_id": task_id}
                 result_collection.insert_one(struct_result)
                 print("Page: " + str(image_index) + ' - ' + "Done!")
