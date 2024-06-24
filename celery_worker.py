@@ -16,8 +16,8 @@ celery_app = Celery('celery_worker', broker=REDIS_HOST, backend=REDIS_HOST)
 MODE = os.getenv('MODE', 'COZE')
 
 
-def find_account(collection):
-    account = collection.find_one({"use": {"$lt": 50}, "lock": 0})
+def find_account(collection, use_limit=50):
+    account = collection.find_one({"use": {"$lt": use_limit}, "lock": 0})
     if not account:
         # Find account last used more than 24 hours ago, do not care about the use count
         account = collection.find_one({"lock": 0, "last_used": {"$lt": int(time.time()) - 86400}})
@@ -123,7 +123,7 @@ def process_image_task(image, pdf_id, image_index, task_id):
             print('Page: ' + str(image_index) + ' - ' + 'Processing image')
             try:
                 pdf_collection, result_collection, account_collection, google_api_collection = connect()
-                api_key, api_key_id = find_account(google_api_collection)
+                api_key, api_key_id = find_account(google_api_collection, use_limit=1500)
                 print("Page: " + str(image_index) + ' - ' + "Got key: " + str(api_key) + ' - ' + "Key ID: " + str(api_key_id))
             except Exception as e:
                 print("Page: " + str(image_index) + ' - ' + "Error in getting account - " + str(e))
