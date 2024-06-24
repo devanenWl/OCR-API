@@ -135,7 +135,7 @@ def process_image_task(image, pdf_id, image_index, task_id):
                 continue
             try:
                 print("Page: " + str(image_index) + ' - ' + "Sending image data to chat")
-                data_return = image_processing_google(image, api_key)
+                data_return = image_processing_google(image, api_key, image_index)
                 if "Error" in data_return:
                     print("Page: " + str(image_index) + ' - ' + "Error in data return")
                     release_account(api_key_id, google_api_collection)
