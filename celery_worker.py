@@ -151,7 +151,7 @@ def process_image_task(image, pdf_id, image_index, task_id):
                 result_collection.insert_one(struct_result)
                 print("Page: " + str(image_index) + ' - ' + "Done!")
                 release_account(api_key_id, google_api_collection)
-                time.sleep(random.randint(10, 15))
+                time.sleep(random.randint(5, 10))
                 break
             except:
                 print("Page: " + str(image_index) + ' - ' + "Error in sending image data to chat")
