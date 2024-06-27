@@ -149,11 +149,13 @@ def process_image_task(image, pdf_id, image_index, task_id, MODE):
                     time.sleep(30)
                     continue
                 if 'Recitation' in data_return:
-                    print("Page: " + str(image_index) + ' - ' + "Recitation" + ' - Try Coze')
+                    recitation += 1
+                    if recitation < 3:
+                        print("Page: " + str(image_index) + ' - ' + "Recitation" + ' - Retry')
                     release_account(api_key_id, google_api_collection)
                     time.sleep(15)
-                    recitation += 1
                     if recitation > 3:
+                        print("Page: " + str(image_index) + ' - ' + "Recitation" + ' - Switch to COZE')
                         # If recitation more than 3 times, switch to COZE
                         data_return = process_image_task(image, pdf_id, image_index, task_id, MODE='COZE')
                         return
