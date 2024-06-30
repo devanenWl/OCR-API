@@ -47,6 +47,37 @@ The application consists of three parts which run concurrently:
 - Click the 'Convert' button to start processing the image.
 - The LaTeX code corresponding to the equation in the image will be displayed.
 
+## Using Docker
+
+To run the application using Docker, follow these steps:
+
+1. Make sure you have Docker installed on your machine. You can download Docker [here](https://www.docker.com/get-started).
+
+2. Clone the repository
+```sh
+git clone https://github.com/KenKout/OCR-AI.git
+```
+
+3. Navigate to the project directory
+```sh
+cd OCR-AI
+```
+
+4. Build the Docker image
+```sh
+docker build -t latex-ocr .
+```
+
+5. Run the Docker container
+```sh
+docker run -d -p 8000:8000 -p 8501:8501 latex-ocr
+```
+
+The application will be available at:
+
+- FastAPI backend: `http://localhost:8000`
+- Streamlit frontend: `http://localhost:8501`
+
 ## Built With
 
 - Python
@@ -62,7 +93,7 @@ The application consists of three parts which run concurrently:
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the GNU General Public License.
 
 ## Acknowledgments
 
