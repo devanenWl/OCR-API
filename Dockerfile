@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN mkdir ./temp
 
 # Add index.html to Streamlit folder
-COPY static/index.html /usr/local/lib/python3.9/site-packages/streamlit/static/index.html
+RUN mv static/index.html /usr/local/lib/python3.9/site-packages/streamlit/static/index.html
 
 # Run app.py when the container launches
 CMD ["python", "run.py"]
