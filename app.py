@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from uuid import uuid4
 from celery_worker import process_task
 import os
@@ -15,7 +15,7 @@ except FileExistsError:
 
 
 @app.post("/submit-pdf/")
-async def submit_pdf(file: UploadFile = File(...)):
+async def submit_pdf(file: UploadFile = File(...), type_task: str = Form(...)):
     # Save the uploaded PDF to a temporary file
     task_id = str(uuid4())
     file_path = f"./temp/{task_id}.pdf"
@@ -23,7 +23,7 @@ async def submit_pdf(file: UploadFile = File(...)):
         f.write(await file.read())
 
     # Submit the task to Celery
-    task = process_task.delay(file_path, task_id)
+    task = process_task.delay(file_path, task_id, type_task)
 
     return {"message": "PDF processing started, go to the status page to check the status", "task_id": task_id}
 

@@ -96,11 +96,14 @@ Use \\backsim if needed
 Make sure if it's math equation, use Math inline delimiters: $_$ and Math display delimiters: $$\\n\\n$$'''
 
 
-def image_processing_google(image_bytes, key, image_index):
+def image_processing_google(image_bytes, key, type_task):
     try:
         image_base64 = convert_image_bytes_to_base64(image_bytes)
         url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:streamGenerateContent?key={key}'
-        data = {"contents": [{"role": "user", "parts": [{"text": user_instruction}, {"inline_data": {"mime_type": "image/jpeg", "data": image_base64}}]}], "generationConfig": {"temperature": 1, "maxOutputTokens": 8096, "topP": 0.95}, "safetySettings": SAFETY_SETTINGS, "systemInstruction": {"parts": {"text": system_instruction}}}
+        if type_task == 'LaTex':
+            data = {"contents": [{"role": "user", "parts": [{"text": user_instruction}, {"inline_data": {"mime_type": "image/jpeg", "data": image_base64}}]}], "generationConfig": {"temperature": 1, "maxOutputTokens": 8096, "topP": 0.95}, "safetySettings": SAFETY_SETTINGS, "systemInstruction": {"parts": {"text": system_instruction}}}
+        else:
+            data = {"contents": [{"role": "user", "parts": [{"text": ""}, {"inline_data": {"mime_type": "image/jpeg", "data": image_base64}}]}], "generationConfig": {"temperature": 1, "maxOutputTokens": 8096, "topP": 0.95}, "safetySettings": SAFETY_SETTINGS, "systemInstruction": {"parts": {"text": system_instruction.replace('LaTeX', 'Text')}}}
         response = requests.post(url, json=data).json()
         if 'quota' in str(response) or 'INVALID_ARGUMENT' in str(response):
             return 'Quota'
