@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.staticfiles import StaticFiles
 from uuid import uuid4
 from celery_worker import process_task
 import os
@@ -55,3 +56,6 @@ async def check_status(task_id: str):
             return {"status": "processing", "result": "Your file is being processed, please wait", "processed_pages": 0, "total_pages": 0, "missing_pages": []}
     else:
         return {"status": "complete", "result": task_result.get()}
+
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
